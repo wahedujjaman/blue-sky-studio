@@ -4,13 +4,7 @@ export async function GET() {
       cache: 'no-store',
     });
     const url = await res.text();
-    
-    // যদি খালি থাকে
-    if (!url || url.length < 10) {
-      return Response.json({ url: null });
-    }
-    
-    return Response.json({ url });
+    return Response.json({ url: url || null });
   } catch (e) {
     return Response.json({ url: null });
   }
