@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>BLUE SKY STUDIO</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* তোমার আগের CSS - Pixel Match - হাত দেইনি */
+  .hidden{display:none}
+  .kaggle-hours-box{display:flex;gap:10px;align-items:center;padding:6px 12px;background:rgba(22,22,28,0.9);border:1px solid #8B7EB8;border-radius:12px;box-shadow:0 0 12px rgba(139,126,184,0.5)}
+  .glow-text{text-shadow:0 0 6px #8B7EB8, 0 0 12px #8B7EB8;animation:glowPulse 2s infinite}
+  @keyframes glowPulse{0%{text-shadow:0 0 4px #8B7EB8}50%{text-shadow:0 0 14px #8B7EB8,0 0 22px #8B7EB8}100%{text-shadow:0 0 4px #8B7EB8}}
+  .dot{width:10px;height:10px;border-radius:9999px;background:#555;box-shadow:0 0 0 rgba(0,0,0,0)}
+  .dot.on-start{background:#FFD86B;box-shadow:0 0 12px #FFD86B;animation:blink 1s infinite}
+  .dot.on-load{background:#3B82F6;box-shadow:0 0 12px #3B82F6;animation:blink 0.6s infinite}
+  .dot.on-ready{background:#22C55E;box-shadow:0 0 14px #22C55E}
+  @keyframes blink{50%{opacity:0.3}}
+</style>
+</head>
+<body class="bg-[#0A0A0A] text-white">
+<!-- HEADER - BLUE SKY + Dot Glow + Kaggle Status + Hours Box -->
+<header class="flex justify-between items-center p-3 border-b border-[#1E1E1E]">
+  <div class="flex items-center gap-3">
+    <span class="text-xl font-bold">☁️ BLUE SKY</span>
+    <div id="power-dot" class="dot"></div>
+    <span id="power-status" class="text-[11px] text-gray-400 glow-text">OFF</span>
+    <button id="power-btn" onclick="togglePower()" class="ml-3 px-3 py-1 rounded bg-[#8B7EB8] text-xs">ON</button>
+  </div>
+  <!-- আগে Settings+Bell+User ছিল, এখন ওটা বাদ - তোমার কথামত Box -->
+  <div id="kaggle-hours-box" class="kaggle-hours-box text-[11px]">
+    <span id="kh-used" class="glow-text">Used: --h</span>
+    <span id="kh-remaining" class="glow-text" style="color:#8BFF8B">Remaining: --h</span>
+    <span id="kh-reset" class="glow-text" style="color:#FFD86B">Reset: --</span>
+    <button onclick="fetchKaggleHours()" class="px-2 py-0.5 rounded bg-[#8B7EB8]">↻</button>
+  </div>
+</header>
+
+<div class="p-3">
+  <div class="flex gap-2 justify-center mb-3">
+    <button onclick="switchStudio('image')" id="tab-image" class="px-3 py-1 rounded text-xs bg-[#1E1E1E]">Image Studio</button>
+    <button onclick="switchStudio('cinema')" id="tab-cinema" class="px-3 py-1 rounded text-xs bg-[#3B6CB5]">Cinema Studio</button>
+    <button onclick="switchStudio('audio')" id="tab-audio" class="px-3 py-1 rounded text-xs bg-[#1E1E1E]">Audio Studio</button>
+    <div class="ml-auto flex gap-2">
+      <button onclick="alert('Modify - Original Image Keep')" class="px-3 py-1 rounded bg-[#1E1E1E] text-xs">Modify</button>
+      <button onclick="toggleDD('download')" class="px-3 py-1 rounded bg-[#1E1E1E] text-xs">Download</button>
+    </div>
+  </div>
+
+  <div class="bg-[#121212] rounded-xl p-6 min-h-[300px] relative flex items-center justify-center">
+    <div id="preview-text" class="text-gray-500 text-sm">Preview will appear here after GENERATE</div>
+    <img id="preview-img" class="hidden max-w-full rounded"/>
+    <video id="preview-video" class="hidden max-w-full rounded" controls></video>
+    <audio id="preview-audio" class="hidden w-full" controls></audio>
+    <div id="download-dd" class="hidden absolute top-12 right-4 bg-[#1A1A1E] border border-[#2A2A2E] rounded-xl p-3 w-[220px] z-50"></div>
+  </div>
+
+  <div class="mt-3 bg-[#1A1A1E] rounded-xl p-3">
+    <div id="ref-tags" class="flex gap-2 mb-2 flex-wrap"></div>
+    <div id="auto-tags" class="flex gap-2 mb-2 flex-wrap"></div>
+    <div class="flex gap-3 items-start">
+      <textarea id="prompt-input" class="flex-1 bg-transparent text-3xl placeholder-gray-500 outline-none min-h-[100px]" placeholder="Describe your scene..."></textarea>
+      <div id="camera-popup" class="hidden bg-[#1E1E22] border border-[#2A2A32] rounded-xl p-3 w-[520px] max-h-[300px] overflow-auto"></div>
+      <div id="sound-popup" class="hidden bg-[#1E1E22] border border-[#2A2A32] rounded-xl p-3 w-[300px] max-h-[400px] overflow-auto"></div>
+    </div>
+    <div class="flex gap-2 mt-3 flex-wrap">
+      <div id="bottom-left" class="flex gap-2 flex-wrap"></div>
+      <div class="ml-auto flex items-center gap-2">
+        <span id="seed-val" class="text-xs">Seed: 12345</span>
+        <button onclick="randomSeed()" class="text-xs px-2 py-1 bg-[#2A2A32] rounded">🎲</button>
+        <button onclick="copySeed()" class="text-xs px-2 py-1 bg-[#2A2A32] rounded">📋</button>
+        <button onclick="toggleDD('camera')" id="cam-setup-btn" class="text-xs px-3 py-1 bg-[#2A2A32] rounded">Camera Setup ▾</button>
+        <button onclick="generate()" class="px-6 py-2 bg-white text-black rounded-xl text-sm font-bold">GENERATE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="file-input" class="hidden" multiple/>
+<div id="loader" class="hidden fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-[100]">
+  <div id="loader-status" class="text-sm glow-text"></div>
+  <div id="loader-model" class="text-xs text-gray-400 mt-2"></div>
+</div>
+
+<script>
+// ============== তোমার 20 Screenshot এর LOCKED CODE - As-Is - Good Parts Untouched ==============
+let activeStudio='cinema', powerState='OFF', seed=12345;
+let refs={image:[],cinema:[],audio:[]}, prompts={image:'',cinema:'',audio:''};
+let refCounters={IMG:0,VID:0,AUD:0,MEL:0,NOT:0,TIM:0,STY:0,VOI:0};
+let settings={camera:null,aperture:null,lens:null,focal:null,sound:null,quality:'1080p'};
+const CAMERAS=[['ARRI Alexa 35','f/1.4','Spherical','24mm'],['RED Komodo','f/2.0','Anamorphic','35mm'],['Sony Venice','f/2.8','Spherical','50mm'],['Sony FX6','f/4','Vintage Prime','50mm'],['Canon EOS C70','f/8','Warm Cinema Prime','75mm'],['Studio Digital S35','f/11','Clean Sharp','85mm']];
+const SOUNDS=['Studio Clean','Warm Analog','Radio Voice','Phone Filter','Bright Pop','Lo-fi Vintage','44.1kHz','48kHz'];
+
+function renderRefTags(){const c=document.getElementById('ref-tags');if(!c)return;const mk=(l,t,a)=>{const b=document.createElement('button');b.className='tag px-3 py-1 rounded-full text-xs bg-[#1E1E1E] border border-[#2A2A32]';b.innerText='+ '+l;b.onclick=()=>openFilePicker(t,a);c.appendChild(b);};c.innerHTML='';if(activeStudio==='image')mk('Image Reference','IMG','image/*');else if(activeStudio==='cinema'){mk('Image Reference','IMG','image/*');mk('Video Reference','VID','video/*');mk('Audio Reference','AUD','audio/*');}else{mk('Melody','MEL','audio/*');mk('Notation','NOT','audio/*');mk('Timbre','TIM','audio/*');mk('Style','STY','audio/*');mk('Voice','VOI','audio/*');}}
+function openFilePicker(t,a){if(powerState!=='ON'){alert('Studio OFF আছে ভাই, আগে ON করো!');return;}const i=document.getElementById('file-input');i.accept=a;i.dataset.type=t;i.click();}
+document.getElementById('file-input').addEventListener('change',e=>{const t=e.target.dataset.type;Array.from(e.target.files).forEach(f=>{refCounters[t]++;const tag=`${t}_${String(refCounters[t]).padStart(2,'0')}`;refs[activeStudio].push({tag,file:f,url:URL.createObjectURL(f),type:t,name:f.name});});renderAutoTags();e.target.value='';});
+function renderAutoTags(){const c=document.getElementById('auto-tags');c.innerHTML='';refs[activeStudio].forEach((r,i)=>{const s=document.createElement('span');s.className='bg-[#3B6CB5] px-2 py-1 rounded-full text-xs flex items-center gap-1';s.innerHTML=`${r.tag} (${r.name.slice(0,8)}) <button onclick="removeRef(${i})">X</button>`;s.title=`Prompt এ লিখো: ${r.tag} ব্যবহার করো`;s.onclick=()=>{const inp=document.getElementById('prompt-input');inp.value+=(inp.value?' ':'')+r.tag+' ';prompts[activeStudio]=inp.value;};c.appendChild(s);});}
+function removeRef(i){refs[activeStudio].splice(i,1);renderAutoTags();}
+function renderBottom(){const c=document.getElementById('bottom-left');c.innerHTML='';const b=(l,k)=>{const btn=document.createElement('button');btn.className='tag px-3 py-1.5 rounded-xl text-xs bg-[#1E1E1E] border border-[#2A2A32]';btn.innerText=l;btn.onclick=()=>toggleDD(k);c.appendChild(btn);};if(activeStudio==='image'){b('+ Style','style');b('Duration','duration');b('Ratio','ratio');b('Resolution','resolution');}else if(activeStudio==='cinema'){b('+ Start Frame','start');b('+ End Frame','end');b('Duration','duration');b('Ratio','ratio');b('Resolution','resolution');}else{b('+ Loop Start','loop');b('+ Loop End','loop');b('Voice','voice');b('Duration','duration_custom');b('Quality','quality');}}
+function toggleDD(k){const cam=document.getElementById('camera-popup'),snd=document.getElementById('sound-popup'),dd=document.getElementById('download-dd');if(k==='camera'){if(activeStudio==='audio'){snd.classList.toggle('hidden');cam.classList.add('hidden');dd.classList.add('hidden');renderSound();}else{cam.classList.toggle('hidden');snd.classList.add('hidden');dd.classList.add('hidden');renderCamera();}return;}if(k==='download'){dd.classList.toggle('hidden');cam.classList.add('hidden');snd.classList.add('hidden');renderDownload();return;}if(k==='style'||k==='resolution'||k==='duration_custom'||k==='quality'){dd.classList.add('hidden');cam.classList.add('hidden');snd.classList.add('hidden');}}
+function renderCamera(){const c=document.getElementById('camera-popup');c.innerHTML='<div class="grid grid-cols-4 gap-2 text-[10px] text-gray-400 mb-2"><span>CAMERA</span><span>APERTURE</span><span>LENS</span><span>FOCAL LENGTH</span></div><div class="text-[9px] text-gray-500 mb-2">Scroll for more - Click to Select/Unselect</div>';CAMERAS.forEach(([cam,ap,lens,focal])=>{const d=document.createElement('div');d.className='grid grid-cols-4 gap-2 p-1.5 rounded text-xs cursor-pointer mb-1 '+(settings.camera===cam?'bg-[#8B7EB8] text-white':'bg-[#1E1E22] hover:bg-[#2A2A32]');d.innerHTML=`<span>${cam}</span><span>${ap}</span><span>${lens}</span><span>${focal}</span>`;d.onclick=()=>{settings.camera=settings.camera===cam?null:cam;renderCamera();};c.appendChild(d);});}
+function renderSound(){const c=document.getElementById('sound-popup');c.innerHTML='<div class="text-[10px] text-gray-400 mb-2">SOUND STYLE</div>';SOUNDS.forEach(s=>{const d=document.createElement('div');d.className='p-2 rounded text-xs mb-1 cursor-pointer '+(settings.sound===s?'bg-[#8B7EB8] text-white':'bg-[#1E1E22] hover:bg-[#2A2A32]');d.innerText=s;d.onclick=()=>{settings.sound=settings.sound===s?null:s;renderSound();};c.appendChild(d);});}
+function randomSeed(){seed=Math.floor(Math.random()*99999);document.getElementById('seed-val').innerText='Seed: '+seed;}
+function copySeed(){navigator.clipboard.writeText(seed.toString());alert('Seed Copied: '+seed);}
+
+// ============== FIXES - শুধু এই জায়গায় হাত দিয়েছি ==============
+let TUNNEL_URL_CACHE=null;
+async function getTunnelUrl(){try{const r=await fetch('/api/get-tunnel-url');const j=await r.json();TUNNEL_URL_CACHE=j.url;return j.url;}catch(e){return TUNNEL_URL_CACHE;}}
+
+function renderDownload(){const c=document.getElementById('download-dd');if(activeStudio==='audio'){c.innerHTML='<div class="text-[10px] text-gray-400 mb-2">Choose export format</div><div class="p-2 rounded text-xs mb-1 bg-[#1E1E22] hover:bg-[#2A2A32] cursor-pointer" onclick="downloadReal(\'128kbps\')">128kbps MP3</div><div class="p-2 rounded text-xs mb-1 bg-[#8B7EB8] cursor-pointer" onclick="downloadReal(\'320kbps\')">320kbps MP3 Recommended</div><div class="p-2 rounded text-xs mb-1 bg-[#1E1E22] hover:bg-[#2A2A32] cursor-pointer" onclick="downloadReal(\'wav\')">WAV</div><div class="p-2 rounded text-xs mb-1 bg-[#1E1E22] hover:bg-[#2A2A32] cursor-pointer" onclick="downloadReal(\'flac\')">FLAC</div><div class="p-2 rounded text-xs mb-1 bg-[#1E1E22] hover:bg-[#2A2A32] cursor-pointer" onclick="downloadReal(\'aac\')">AAC</div>';}else{c.innerHTML='<div class="text-[10px] text-gray-400 mb-2">Choose export quality</div><div class="p-2 rounded text-xs mb-1 bg-[#1E1E22] hover:bg-[#2A2A32] cursor-pointer" onclick="downloadReal(\'720p\')">720p</div><div class="p-2 rounded text-xs mb-1 bg-[#8B7EB8] cursor-pointer" onclick="downloadReal(\'1080p\')">1080p Recommended</div><div class="p-2 rounded text-xs mb-1 bg-[#1E1E22] hover:bg-[#2A2A32] cursor-pointer" onclick="downloadReal(\'2k\')">2K</div><div class="p-2 rounded text-xs mb-1 bg-[#1E1E22] hover:bg-[#2A2A32] cursor-pointer" onclick="downloadReal(\'4k\')">4K</div>';}}
+async function downloadReal(q){settings.quality=q;document.getElementById('download-dd').classList.add('hidden');const tunnel=await getTunnelUrl();if(!tunnel){alert('Tunnel Ready না! ON চাপো');return;}const res=await fetch(`/api/generate?quality=${q}&tunnel=${encodeURIComponent(tunnel)}`);const blob=await res.blob();const url=URL.createObjectURL(blob);window.open(url,'_blank');}
+
+async function fetchKaggleHours(){try{const r=await fetch('/api/kaggle-usage');const j=await r.json();document.getElementById('kh-used').innerText=`Used: ${j.used}h`;document.getElementById('kh-remaining').innerText=`Remaining: ${(j.quota-j.used).toFixed(1)}h`;const resetDate=new Date(j.resetAt);const diff=resetDate-new Date();const d=Math.floor(diff/(1000*60*60*24));const h=Math.floor((diff%(1000*60*60*24))/(1000*60*60));document.getElementById('kh-reset').innerText=`Reset: ${d}d ${h}h`;}catch(e){document.getElementById('kh-used').innerText='Used: --';document.getElementById('kh-remaining').innerText='OFF';document.getElementById('kh-reset').innerText='Reset: Sun 00:00 UTC';}}
+setInterval(fetchKaggleHours,60000);
+
+function updateDot(state,text){const dot=document.getElementById('power-dot');const status=document.getElementById('power-status');dot.className='dot '+state;status.innerText=text;}
+async function togglePower(){
+  if(powerState==='OFF'){
+    powerState='ON';document.getElementById('power-btn').innerText='OFF';updateDot('on-start','Starting Kaggle...');
+    try{await fetch('/api/kaggle-control',{method:'POST',body:JSON.stringify({action:'start'}),headers:{'Content-Type':'application/json'}});updateDot('on-load','Loading 8 Models...');setTimeout(async()=>{await getTunnelUrl();updateDot('on-ready','Ready! 4K Film Ready!');fetchKaggleHours();},8000);}catch(e){updateDot('on-start','Error - Retry');}
+  }else{
+    powerState='OFF';document.getElementById('power-btn').innerText='ON';updateDot('','OFF');await fetch('/api/kaggle-control',{method:'POST',body:JSON.stringify({action:'stop'}),headers:{'Content-Type':'application/json'}});fetchKaggleHours();
+  }
+}
+
+async function generate(){if(powerState!=='ON'){alert('Studio OFF! আগে BLUE SKY Power ON করো');return;}const p=document.getElementById('prompt-input').value;if(!p){alert('Prompt লিখো ভাই!');return;}prompts[activeStudio]=p;const loader=document.getElementById('loader');loader.classList.remove('hidden');const tunnel=await getTunnelUrl();if(!tunnel){loader.classList.add('hidden');alert('Tunnel URL পাওয়া যায়নি! ON চাপো, 10s wait');return;}document.getElementById('loader-status').innerText=`Vercel -> Upstash -> Tunnel -> Kaggle Generating...`;document.getElementById('loader-model').innerText=`${activeStudio} | ${p.slice(0,30)}... | ${refs[activeStudio].map(r=>r.tag).join(', ')}`;try{const fd=new FormData();fd.append('studio',activeStudio);fd.append('prompt',p);fd.append('settings',JSON.stringify(settings));fd.append('seed',seed.toString());fd.append('refs_tags',JSON.stringify(refs[activeStudio].map(r=>r.tag)));fd.append('tunnel_url',tunnel);refs[activeStudio].forEach((r,i)=>{fd.append(`ref_${i}`,r.file);});const res=await fetch(`/api/generate`,{method:'POST',body:fd});if(!res.ok)throw new Error('Tunnel not ready');const poll=setInterval(async()=>{try{const sRes=await fetch(`/api/status?tunnel=${encodeURIComponent(tunnel)}`);const status=await sRes.json();if(status.progress)document.getElementById('loader-model').innerText=status.progress;if(status.ready&&status.url){clearInterval(poll);loader.classList.add('hidden');document.getElementById('preview-text').classList.add('hidden');if(activeStudio==='image'){const img=document.getElementById('preview-img');img.src=status.url;img.classList.remove('hidden');}else if(activeStudio==='cinema'){const vid=document.getElementById('preview-video');vid.src=status.url;vid.classList.remove('hidden');}else{const aud=document.getElementById('preview-audio');aud.src=status.url;aud.classList.remove('hidden');}fetchKaggleHours();}}catch(e){console.log('Polling...');}},3000);}catch(e){loader.classList.add('hidden');alert('Backend Ready না! '+e.message);}}
+function switchStudio(s){activeStudio=s;document.getElementById('tab-image').className=s==='image'?'px-3 py-1 rounded text-xs bg-[#3B6CB5]':'px-3 py-1 rounded text-xs bg-[#1E1E1E]';document.getElementById('tab-cinema').className=s==='cinema'?'px-3 py-1 rounded text-xs bg-[#3B6CB5]':'px-3 py-1 rounded text-xs bg-[#1E1E1E]';document.getElementById('tab-audio').className=s==='audio'?'px-3 py-1 rounded text-xs bg-[#3B6CB5]':'px-3 py-1 rounded text-xs bg-[#1E1E1E]';document.getElementById('prompt-input').placeholder=s==='audio'?'Describe your music...':'Describe your scene...';document.getElementById('cam-setup-btn').innerText=s==='audio'?'Sound Style ▾':'Camera Setup ▾';renderRefTags();renderBottom();}
+switchStudio('cinema');renderRefTags();renderBottom();fetchKaggleHours();
+</script>
+</body>
+</html>
