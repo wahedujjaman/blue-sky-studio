@@ -1,16 +1,17 @@
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+export async function GET() {
   try {
-    let url = globalThis.tunnelUrl || null;
-    if (!url) {
-      try {
-        const r = await fetch('https://kvdb.io/blue-sky-wahed-2024/tunnel');
-        const t = await r.text();
-        if (t && t.startsWith('http')) url = t;
-      } catch (e) {}
+    const res = await fetch('https://kvdb.io/blue-sky-wahed-2024/tunnel', {
+      cache: 'no-store',
+    });
+    const url = await res.text();
+    
+    // যদি খালি থাকে
+    if (!url || url.length < 10) {
+      return Response.json({ url: null });
     }
-    return res.status(200).json({ url: url, status: url ? "ON" : "OFF" });
+    
+    return Response.json({ url });
   } catch (e) {
-    return res.status(200).json({ url: null, status: "OFF" });
+    return Response.json({ url: null });
   }
 }
