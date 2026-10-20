@@ -1,3 +1,4 @@
 export default function handler(req, res) {
-  res.status(200).json({ status: "ON" });
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  return res.status(200).json({ status: "ON", action: req.query.action || "status" });
 }
