@@ -1,20 +1,14 @@
-export default function handler(req, res) {
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
   try {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    if (req.method === 'OPTIONS') return res.status(200).end();
-
-    let url = null;
-    if (req.body) {
-      url = req.body.url || req.body.tunnel_url || null;
-    }
-    if (!url && req.query && req.query.url) {
-      url = req.query.url;
-    }
+    let url = req.body?.url || req.query?.url || null;
     if (url) {
       globalThis.tunnelUrl = url;
-      globalThis.tunnelTime = Date.now();
+      // Permanent save to free KV
+      await fetch('https://kvdb.io/blue-sky-wahed-2024/tunnel', { method: 'POST', body: url }).catch(()=>{});
     }
     return res.status(200).json({ success: true, url: globalThis.tunnelUrl || url || null });
   } catch (e) {
