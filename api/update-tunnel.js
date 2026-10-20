@@ -1,17 +1,30 @@
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+export async function POST(req) {
   try {
-    let url = req.body?.url || req.query?.url || null;
-    if (url) {
-      globalThis.tunnelUrl = url;
-      // Permanent save to free KV
-      await fetch('https://kvdb.io/blue-sky-wahed-2024/tunnel', { method: 'POST', body: url }).catch(()=>{});
-    }
-    return res.status(200).json({ success: true, url: globalThis.tunnelUrl || url || null });
+    const { url } = await req.json();
+    if (!url) return Response.json({ success: false }, { status: 400 });
+
+    // KVDB তে Save - এটাই আসল জায়গা
+    await fetch('https://kvdb.io/blue-sky-wahed-2024/tunnel', {
+      method: 'POST',
+      body: url,
+    });
+
+    console.log("Tunnel Saved:", url);
+    return Response.json({ success: true, url });
   } catch (e) {
-    return res.status(200).json({ success: true, url: globalThis.tunnelUrl || null });
+    return Response.json({ success: false, error: e.message }, { status: 500 });
   }
+}
+
+// GET দিয়েও যাতে ব্রাউজার থেকে সেট করা যায়
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+  const url = searchParams.get('url');
+  if (!url) return Response.json({ success: false });
+
+  await fetch('https://kvdb.io/blue-sky-wahed-2024/tunnel', {
+    method: 'POST',
+    body: url,
+  });
+  return Response.json({ success: true, url });
 }
